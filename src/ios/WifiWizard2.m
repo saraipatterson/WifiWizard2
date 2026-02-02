@@ -7,7 +7,7 @@
 @implementation WifiWizard2
 
 - (id)fetchSSIDInfo {
-    // see http://stackoverflow.com/a/5198968/907720
+    // CaptiveNetwork API (legacy). iOS 13+ should use NEHotspotNetwork in callers.
     NSArray *ifs = (__bridge_transfer NSArray *)CNCopySupportedInterfaces();
     NSLog(@"Supported interfaces: %@", ifs);
     NSDictionary *info;
@@ -160,6 +160,30 @@
 }
 
 - (void)getConnectedSSID:(CDVInvokedUrlCommand*)command {
+    if (@available(iOS 13.0, *)) {
+        @try {
+            [NEHotspotNetwork fetchCurrentWithCompletionHandler:^(NEHotspotNetwork * _Nullable network) {
+                CDVPluginResult *pluginResult = nil;
+                @try {
+                    if (network && network.SSID && [network.SSID length]) {
+                        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:network.SSID];
+                    } else {
+                        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"Not available"];
+                    }
+                } @catch (NSException *exception) {
+                    pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:exception.reason ?: @"Not available"];
+                }
+                [self.commandDelegate sendPluginResult:pluginResult
+                                            callbackId:command.callbackId];
+            }];
+        } @catch (NSException *exception) {
+            CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:exception.reason ?: @"Not available"];
+            [self.commandDelegate sendPluginResult:pluginResult
+                                        callbackId:command.callbackId];
+        }
+        return;
+    }
+
     CDVPluginResult *pluginResult = nil;
     NSDictionary *r = [self fetchSSIDInfo];
 
@@ -176,6 +200,30 @@
 }
 
 - (void)getConnectedBSSID:(CDVInvokedUrlCommand*)command {
+    if (@available(iOS 13.0, *)) {
+        @try {
+            [NEHotspotNetwork fetchCurrentWithCompletionHandler:^(NEHotspotNetwork * _Nullable network) {
+                CDVPluginResult *pluginResult = nil;
+                @try {
+                    if (network && network.BSSID && [network.BSSID length]) {
+                        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:network.BSSID];
+                    } else {
+                        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"Not available"];
+                    }
+                } @catch (NSException *exception) {
+                    pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:exception.reason ?: @"Not available"];
+                }
+                [self.commandDelegate sendPluginResult:pluginResult
+                                            callbackId:command.callbackId];
+            }];
+        } @catch (NSException *exception) {
+            CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:exception.reason ?: @"Not available"];
+            [self.commandDelegate sendPluginResult:pluginResult
+                                        callbackId:command.callbackId];
+        }
+        return;
+    }
+
     CDVPluginResult *pluginResult = nil;
     NSDictionary *r = [self fetchSSIDInfo];
     
